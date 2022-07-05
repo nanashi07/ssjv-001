@@ -1,0 +1,7 @@
+com:
+  prhythm:
+    ssjv001:
+      kafka:
+        exchange:
+          enabled: true
+          bootstrapAddress: localhost:9092
