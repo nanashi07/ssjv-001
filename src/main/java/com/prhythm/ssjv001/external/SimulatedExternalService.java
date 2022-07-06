@@ -33,7 +33,7 @@ public class SimulatedExternalService {
             var ticket = objectMapper.readValue(message, TicketInfo.class);
             log.info("handle command: {}, id: {}", ticket.getCommand(), ticket.getTicketId());
             // simulate time consuming process
-            TimeUnit.MILLISECONDS.sleep(500L + new SecureRandom().nextLong(1500L));
+            TimeUnit.MILLISECONDS.sleep(3000L + new SecureRandom().nextLong(3500L));
             var response = MessageResponse.builder()
                     .ticketId(ticket.getTicketId())
                     .status("ACCEPTED")
@@ -55,6 +55,7 @@ public class SimulatedExternalService {
             log.warn("kafka message is not enabled");
             return Mono.empty();
         }
+        log.info("send result: {}", result);
         return Mono
                 .fromFuture(
                         kafkaTemplate
