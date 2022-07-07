@@ -34,7 +34,7 @@ public class TicketSender {
         return Mono
                 .fromFuture(
                         kafkaTemplate
-                                .send(KafkaServerProperties.TOPIC_SIMPLE_COMMAND, command)
+                                .send(KafkaServerProperties.TOPIC_DIRECTIVE_TICKET, command)
                                 .completable()
                 )
                 .retry(2)

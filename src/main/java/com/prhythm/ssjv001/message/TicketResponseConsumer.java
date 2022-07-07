@@ -17,7 +17,7 @@ public class TicketResponseConsumer {
     private final ObjectMapper objectMapper;
     private final TicketResponseDispatcher ticketResponseDispatcher;
 
-    @KafkaListener(topics = {KafkaServerProperties.TOPIC_SIMPLE_RESOLVER}, groupId = "ssjv001")
+    @KafkaListener(topics = {KafkaServerProperties.TOPIC_DIRECTIVE_RESPONSE}, groupId = "ssjv001")
     public void resolverHandler(String message) {
         log.info("receive ticket response: {}", message);
         try {

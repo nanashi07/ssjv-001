@@ -5,6 +5,7 @@ import com.prhythm.ssjv001.controller.vo.TicketCreatedResponse;
 import com.prhythm.ssjv001.error.ExceptionBuilder;
 import com.prhythm.ssjv001.service.TicketService;
 import com.prhythm.ssjv001.service.vo.TicketResult;
+import com.prhythm.ssjv001.trace.TraceCode;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,7 +59,7 @@ public class TicketController {
                     .type(request.getType())
                     .build();
 
-            return ExceptionBuilder.timeout("create ticket timeout internally", "001-000", response).toMono();
+            return ExceptionBuilder.timeout("create ticket timeout internally", TraceCode.Ticket.EXCEED_TIMEOUT, response).toMono();
         });
     }
 

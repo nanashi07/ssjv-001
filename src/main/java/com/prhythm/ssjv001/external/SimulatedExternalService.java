@@ -26,7 +26,7 @@ public class SimulatedExternalService {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
-    @KafkaListener(topics = {KafkaServerProperties.TOPIC_SIMPLE_COMMAND}, groupId = "ssjv001")
+    @KafkaListener(topics = {KafkaServerProperties.TOPIC_DIRECTIVE_TICKET}, groupId = "ssjv001")
     public void commandHandler(String message) {
         log.info("receive command: {}", message);
         try {
@@ -59,7 +59,7 @@ public class SimulatedExternalService {
         return Mono
                 .fromFuture(
                         kafkaTemplate
-                                .send(KafkaServerProperties.TOPIC_SIMPLE_RESOLVER, result)
+                                .send(KafkaServerProperties.TOPIC_DIRECTIVE_RESPONSE, result)
                                 .completable()
                 )
                 .retry(2)

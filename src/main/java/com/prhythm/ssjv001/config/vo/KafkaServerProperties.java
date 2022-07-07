@@ -6,8 +6,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class KafkaServerProperties {
-    public static final String TOPIC_SIMPLE_COMMAND = "prhythm_ssjv001_simple_command";
-    public static final String TOPIC_SIMPLE_RESOLVER = "prhythm_ssjv001_simple_resolver";
+    public static final String TOPIC_DIRECTIVE_TICKET = "prhythm_ssjv001_directive_ticket";
+    public static final String TOPIC_DIRECTIVE_RESPONSE = "prhythm_ssjv001_directive_response";
 
     private boolean enabled;
     private String bootstrapAddress;

@@ -36,12 +36,12 @@ public class KafkaConfig {
 
     @Bean
     public NewTopic simpleCommandTopic() {
-        return new NewTopic(KafkaServerProperties.TOPIC_SIMPLE_COMMAND, 1, (short) 1);
+        return new NewTopic(KafkaServerProperties.TOPIC_DIRECTIVE_TICKET, 1, (short) 1);
     }
 
     @Bean
     public NewTopic simpleSolverTopic() {
-        return new NewTopic(KafkaServerProperties.TOPIC_SIMPLE_RESOLVER, 1, (short) 1);
+        return new NewTopic(KafkaServerProperties.TOPIC_DIRECTIVE_RESPONSE, 1, (short) 1);
     }
 
     @Bean

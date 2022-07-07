@@ -8,14 +8,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+
+import static com.prhythm.ssjv001.factor.Headers.PX_TRACE_CODE;
+import static com.prhythm.ssjv001.factor.Headers.PX_TRACE_MESSAGE;
 
 @Slf4j
 @Component
@@ -28,13 +34,29 @@ public class GlobalErrorFilter implements WebFilter {
     @NonNull
     public Mono<Void> filter(@NonNull ServerWebExchange exchange, WebFilterChain chain) {
         return chain.filter(exchange)
-                .onErrorResume(GenericException.class, error -> handleGenericException(exchange.getResponse(), error));
+                .onErrorResume(GenericException.class, error -> handleGenericException(exchange.getRequest(), exchange.getResponse(), error))
+                .onErrorResume(Exception.class, error -> handleDefaultException(exchange.getRequest(), exchange.getResponse(), error));
     }
 
-    private Mono<Void> handleGenericException(ServerHttpResponse response, GenericException error) {
+    private Mono<Void> handleDefaultException(ServerHttpRequest request, ServerHttpResponse response, Exception error) {
+        log.error("default error handler,{} {}", request.getMethod(), request.getPath(), error);
+        if (error instanceof ResponseStatusException rse) {
+            response.setStatusCode(rse.getStatus());
+        } else {
+            response.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        // response empty data
+        DataBuffer buffer = response.bufferFactory().wrap("{}".getBytes(StandardCharsets.UTF_8));
+        return response.writeWith(Mono.just(buffer));
+    }
+
+    private Mono<Void> handleGenericException(ServerHttpRequest request, ServerHttpResponse response, GenericException error) {
+        log.warn("generic error handler: {} {}, message = {}", request.getMethod(), request.getPath(), error.getMessage());
         HttpHeaders headers = response.getHeaders();
-        headers.set("PX-Trace-Code", error.getTraceCode());
-        headers.set("PX-Trace-Message", error.getMessage());
+
+        // put trace code
+        headers.set(PX_TRACE_CODE, error.getTraceCode());
+        headers.set(PX_TRACE_MESSAGE, error.getMessage());
 
         Optional<HttpStatus> status = error.status();
         if (status.isPresent()) {
@@ -43,17 +65,18 @@ public class GlobalErrorFilter implements WebFilter {
             response.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
+        DataBuffer buffer = null;
         if (error.getData() != null) {
             try {
-                DataBuffer buffer = response.bufferFactory()
+                buffer = response.bufferFactory()
                         .wrap(objectMapper.writeValueAsBytes(error.getData()));
-                return response.writeWith(Mono.just(buffer));
             } catch (Exception ex) {
                 log.error("handle failed", ex);
             }
         }
 
-        return error.toMono();
+        return response.writeWith(Mono.just(Optional.ofNullable(buffer)
+                .orElse(response.bufferFactory().wrap("{}".getBytes(StandardCharsets.UTF_8)))));
     }
 
 }

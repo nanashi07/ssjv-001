@@ -1,10 +1,12 @@
 package com.prhythm.ssjv001.service;
 
 import com.prhythm.ssjv001.controller.vo.CreateTicketRequest;
+import com.prhythm.ssjv001.error.ExceptionBuilder;
 import com.prhythm.ssjv001.message.TicketSender;
 import com.prhythm.ssjv001.message.vo.MessageResponse;
-import com.prhythm.ssjv001.service.vo.TicketResult;
 import com.prhythm.ssjv001.service.vo.TicketInfo;
+import com.prhythm.ssjv001.service.vo.TicketResult;
+import com.prhythm.ssjv001.trace.TraceCode;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +38,7 @@ public class TicketService {
                         .type(r.getType())
                         .submitter(r.getSubmitter())
                         .build())
-                .switchIfEmpty(Mono.error(IllegalArgumentException::new));
+                .switchIfEmpty(Mono.error(ExceptionBuilder.invalid("Invalid ticket info", TraceCode.Ticket.INVALID)));
     }
 
     public Mono<Tuple2<TicketInfo, Mono<MessageResponse>>> sendTicket(TicketInfo source) {
