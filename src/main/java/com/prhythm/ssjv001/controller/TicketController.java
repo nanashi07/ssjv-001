@@ -53,6 +53,7 @@ public class TicketController {
     private Mono<TicketCreatedResponse> timeout(CreateTicketRequest request) {
         return Mono.defer(() -> {
             log.warn("failed for {}", request);
+            // cancel mapping for response here
             var response = TicketCreatedResponse.builder()
                     .message("Ticket created failed")
                     .command(request.getCommand())

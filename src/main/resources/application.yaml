@@ -5,3 +5,8 @@ com:
         exchange:
           enabled: true
           bootstrapAddress: localhost:9092
+spring:
+  jackson:
+    serialization:
+      write-self-references-as-null: true
+    default-property-inclusion: non_null

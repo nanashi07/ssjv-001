@@ -1,10 +1,15 @@
 package com.prhythm.ssjv001.config;
 
 import com.prhythm.ssjv001.config.vo.KafkaServerProperties;
+import com.prhythm.ssjv001.message.GroupAdvisor;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -13,9 +18,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
+import org.springframework.kafka.listener.ConsumerAwareRebalanceListener;
 
+import java.util.Collection;
 import java.util.HashMap;
 
+import static com.prhythm.ssjv001.config.vo.KafkaServerProperties.TOPIC_DIRECTIVE_RESPONSE;
+import static com.prhythm.ssjv001.config.vo.KafkaServerProperties.TOPIC_DIRECTIVE_TICKET;
+
+@Slf4j
 @Configuration
 @EnableConfigurationProperties
 @ConditionalOnProperty(value = "com.prhythm.ssjv001.kafka.exchange.enabled", havingValue = "true")
@@ -23,7 +34,7 @@ public class KafkaConfig {
 
     @Bean
     @ConfigurationProperties("com.prhythm.ssjv001.kafka.exchange")
-    public KafkaServerProperties kafkaServerConfig() {
+    public KafkaServerProperties KafkaServerProperties() {
         return new KafkaServerProperties();
     }
 
@@ -35,13 +46,13 @@ public class KafkaConfig {
     }
 
     @Bean
-    public NewTopic simpleCommandTopic() {
-        return new NewTopic(KafkaServerProperties.TOPIC_DIRECTIVE_TICKET, 1, (short) 1);
+    public NewTopic topicDirectiveTicket() {
+        return new NewTopic(TOPIC_DIRECTIVE_TICKET, 3, (short) 1);
     }
 
     @Bean
-    public NewTopic simpleSolverTopic() {
-        return new NewTopic(KafkaServerProperties.TOPIC_DIRECTIVE_RESPONSE, 1, (short) 1);
+    public NewTopic topicDirectiveResponse() {
+        return new NewTopic(TOPIC_DIRECTIVE_RESPONSE, 10, (short) 1);
     }
 
     @Bean
@@ -59,6 +70,32 @@ public class KafkaConfig {
     }
 
     @Bean
+    public GroupAdvisor groupAdvisor() {
+        return new GroupAdvisor();
+    }
+
+    @Bean
+    public ConsumerAwareRebalanceListener consumerAwareRebalanceListener(GroupAdvisor groupAdvisor) {
+        return new ConsumerAwareRebalanceListener() {
+            @Override
+            public void onPartitionsLost(@NonNull Consumer<?, ?> consumer, @NonNull Collection<TopicPartition> partitions) {
+                log.info("partition lost: {}", partitions);
+                for (TopicPartition partition : partitions) {
+                    groupAdvisor.unregister(partition.topic(), partition.partition());
+                }
+            }
+
+            @Override
+            public void onPartitionsAssigned(@NonNull Consumer<?, ?> consumer, @NonNull Collection<TopicPartition> partitions) {
+                log.info("partition assigned: {}", partitions);
+                for (TopicPartition partition : partitions) {
+                    groupAdvisor.register(partition.topic(), partition.partition());
+                }
+            }
+        };
+    }
+
+    @Bean
     public ConsumerFactory<String, String> consumerFactory(KafkaServerProperties kafkaServerProperties) {
         var config = new HashMap<String, Object>();
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServerProperties.getBootstrapAddress());
@@ -68,9 +105,11 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, String> concurrentKafkaListenerContainerFactory(ConsumerFactory<String, String> consumerFactory) {
+    public ConcurrentKafkaListenerContainerFactory<String, String> concurrentKafkaListenerContainerFactory(ConsumerFactory<String, String> consumerFactory,
+                                                                                                           ConsumerAwareRebalanceListener consumerAwareRebalanceListener) {
         var factory = new ConcurrentKafkaListenerContainerFactory<String, String>();
         factory.setConsumerFactory(consumerFactory);
+        factory.getContainerProperties().setConsumerRebalanceListener(consumerAwareRebalanceListener);
         return factory;
     }
 

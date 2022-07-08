@@ -21,11 +21,19 @@ public class TicketResponseDispatcher {
         consumers.put(ticketId, sink);
     }
 
+    public void unregister(String ticketId) {
+        log.info("unregister for ticket: {}", ticketId);
+        consumers.remove(ticketId);
+    }
+
     public synchronized void dispatch(MessageResponse response) {
         if (consumers.containsKey(response.getTicketId())) {
             MonoSink<MessageResponse> sink = consumers.remove(response.getTicketId());
             log.info("dispatch response for ticket: {}", response.getTicketId());
             sink.success(response);
+        } else {
+            log.warn("expired ticket, cancel succeed ticket");
+            // failed acknowledge
         }
     }
 
