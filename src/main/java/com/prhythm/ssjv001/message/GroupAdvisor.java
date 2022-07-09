@@ -24,6 +24,10 @@ public class GroupAdvisor {
         return partitions;
     }
 
+    public void clear(String topic) {
+        obtainPartitions(topic).clear();
+    }
+
     public synchronized void register(String topic, int partition) {
         Set<Integer> partitions = obtainPartitions(topic);
         partitions.add(partition);

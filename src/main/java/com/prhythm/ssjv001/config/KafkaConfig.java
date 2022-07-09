@@ -22,6 +22,7 @@ import org.springframework.kafka.listener.ConsumerAwareRebalanceListener;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.stream.Collectors;
 
 import static com.prhythm.ssjv001.config.vo.KafkaServerProperties.TOPIC_DIRECTIVE_RESPONSE;
 import static com.prhythm.ssjv001.config.vo.KafkaServerProperties.TOPIC_DIRECTIVE_TICKET;
@@ -88,9 +89,14 @@ public class KafkaConfig {
             @Override
             public void onPartitionsAssigned(@NonNull Consumer<?, ?> consumer, @NonNull Collection<TopicPartition> partitions) {
                 log.info("partition assigned: {}", partitions);
-                for (TopicPartition partition : partitions) {
-                    groupAdvisor.register(partition.topic(), partition.partition());
-                }
+                partitions.stream()
+                        .collect(Collectors.groupingBy(TopicPartition::topic))
+                        .forEach((topic, group) -> {
+                            groupAdvisor.clear(topic);
+                            group.stream().map(TopicPartition::partition).forEach(partition -> {
+                                groupAdvisor.register(topic, partition);
+                            });
+                        });
             }
         };
     }
