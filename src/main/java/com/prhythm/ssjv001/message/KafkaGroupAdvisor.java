@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 @Slf4j
-public class GroupAdvisor {
+public class KafkaGroupAdvisor {
 
     private final Map<String, Set<Integer>> assignedPartitions = new ConcurrentHashMap<>();
     private final SecureRandom random = new SecureRandom();
@@ -24,8 +24,13 @@ public class GroupAdvisor {
         return partitions;
     }
 
-    public void clear(String topic) {
-        obtainPartitions(topic).clear();
+    public void register(String topic, int[] partitions) {
+        synchronized (assignedPartitions) {
+            obtainPartitions(topic).clear();
+            for (int partition : partitions) {
+                register(topic, partition);
+            }
+        }
     }
 
     public synchronized void register(String topic, int partition) {

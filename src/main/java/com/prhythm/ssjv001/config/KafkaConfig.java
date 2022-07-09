@@ -1,7 +1,7 @@
 package com.prhythm.ssjv001.config;
 
 import com.prhythm.ssjv001.config.vo.KafkaServerProperties;
-import com.prhythm.ssjv001.message.GroupAdvisor;
+import com.prhythm.ssjv001.message.KafkaGroupAdvisor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClientConfig;
@@ -71,18 +71,18 @@ public class KafkaConfig {
     }
 
     @Bean
-    public GroupAdvisor groupAdvisor() {
-        return new GroupAdvisor();
+    public KafkaGroupAdvisor kafkaGroupAdvisor() {
+        return new KafkaGroupAdvisor();
     }
 
     @Bean
-    public ConsumerAwareRebalanceListener consumerAwareRebalanceListener(GroupAdvisor groupAdvisor) {
+    public ConsumerAwareRebalanceListener consumerAwareRebalanceListener(KafkaGroupAdvisor kafkaGroupAdvisor) {
         return new ConsumerAwareRebalanceListener() {
             @Override
             public void onPartitionsLost(@NonNull Consumer<?, ?> consumer, @NonNull Collection<TopicPartition> partitions) {
                 log.info("partition lost: {}", partitions);
                 for (TopicPartition partition : partitions) {
-                    groupAdvisor.unregister(partition.topic(), partition.partition());
+                    kafkaGroupAdvisor.unregister(partition.topic(), partition.partition());
                 }
             }
 
@@ -91,12 +91,10 @@ public class KafkaConfig {
                 log.info("partition assigned: {}", partitions);
                 partitions.stream()
                         .collect(Collectors.groupingBy(TopicPartition::topic))
-                        .forEach((topic, group) -> {
-                            groupAdvisor.clear(topic);
-                            group.stream().map(TopicPartition::partition).forEach(partition -> {
-                                groupAdvisor.register(topic, partition);
-                            });
-                        });
+                        .forEach((topic, group) -> kafkaGroupAdvisor.register(
+                                topic,
+                                group.stream().mapToInt(TopicPartition::partition).toArray()
+                        ));
             }
         };
     }

@@ -21,7 +21,7 @@ import static com.prhythm.ssjv001.config.vo.KafkaServerProperties.TOPIC_DIRECTIV
 public class TicketSender {
 
     private final KafkaServerProperties config;
-    private final GroupAdvisor groupAdvisor;
+    private final KafkaGroupAdvisor kafkaGroupAdvisor;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
@@ -38,7 +38,7 @@ public class TicketSender {
         return Mono
                 .fromFuture(
                         kafkaTemplate
-                                .send(TOPIC_DIRECTIVE_TICKET, String.valueOf(groupAdvisor.next(TOPIC_DIRECTIVE_RESPONSE)), command)
+                                .send(TOPIC_DIRECTIVE_TICKET, String.valueOf(kafkaGroupAdvisor.next(TOPIC_DIRECTIVE_RESPONSE)), command)
                                 .completable()
                 )
                 .retry(2)
